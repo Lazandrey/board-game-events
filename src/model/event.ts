@@ -4,7 +4,7 @@ import { IEvent } from "../features/event.types";
 
 const eventSchema = new mongoose.Schema<IEvent>({
   id: { type: String, required: true },
-  host_id: {
+  host: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
     required: true,
@@ -15,7 +15,12 @@ const eventSchema = new mongoose.Schema<IEvent>({
   description: { type: String, required: true },
   price: { type: Number, required: true },
   boardgame_img_url: { type: String, required: true },
-  accepted_persons_ids: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+  accepted_persons_ids: [
+    {
+      user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+      addedAt: { type: Date, default: Date.now },
+    },
+  ],
   isCanceled: { type: Boolean, default: false },
 });
 

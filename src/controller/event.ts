@@ -23,7 +23,7 @@ export const CREATE_EVENT = async (req: Request, res: Response) => {
 
     const newEvent: ICreateEvent = {
       id: uuidv4(),
-      host_id: host._id,
+      host: host._id,
       number_persons: req.body.number_persons,
       date_time: req.body.date_time,
       boardgame_name: req.body.boardgame_name,
@@ -45,7 +45,14 @@ export const CREATE_EVENT = async (req: Request, res: Response) => {
 
 export const GET_EVENTS = async (req: Request, res: Response) => {
   try {
-    const events = await eventModel.find();
+    const events = await eventModel
+      .find()
+      .populate({ path: "host", select: "name", transform: (doc) => doc.name })
+      .populate({
+        path: "accepted_persons_ids.user",
+        select: "name",
+        transform: (doc) => doc?.name,
+      });
     return res.status(200).json({ message: "events found", events });
   } catch (error) {
     return res.status(500).json({ message: "something went wrong", error });
@@ -54,7 +61,10 @@ export const GET_EVENTS = async (req: Request, res: Response) => {
 
 export const GET_EVENT_BY_ID = async (req: Request, res: Response) => {
   try {
-    const event = await eventModel.findOne({ id: req.params.id });
+    const event = await eventModel
+      .findOne({ id: req.params.id })
+      .populate("host", "name")
+      .populate("accepted_persons_ids.user", "name");
     if (!event) {
       return res.status(404).json({ message: "event not found" });
     }
@@ -73,7 +83,7 @@ export const CANCEL_EVENT_BY_ID = async (req: Request, res: Response) => {
     if (!host) {
       return res.status(401).json({ message: "You have provided bad data" });
     }
-    if (!event.host_id.id === host.id) {
+    if (!event.host.id === host.id) {
       return res
         .status(401)
         .json({ message: "You are not the host of this event" });
@@ -96,7 +106,7 @@ export const UPDATE_EVENT_BY_ID = async (req: Request, res: Response) => {
     if (!host) {
       return res.status(401).json({ message: "You have provided bad data" });
     }
-    if (!event.host_id.id === host.id) {
+    if (!event.host.id === host.id) {
       return res
         .status(401)
         .json({ message: "You are not the host of this event" });
@@ -137,19 +147,19 @@ export const ACCEPT_EVENT_BY_ID = async (req: Request, res: Response) => {
       return res.status(401).json({ message: "You have provided bad data" });
     }
     const index = event.accepted_persons_ids.findIndex((id) =>
-      id._id.equals(user._id)
+      id.user._id.equals(user._id)
     );
-    if (index === -1) {
-      event.accepted_persons_ids.push(user);
-      const response = await event.save();
-      return res
-        .status(200)
-        .json({ message: "event accepted", event: response });
-    } else {
+    if (!(index === -1)) {
       return res
         .status(400)
         .json({ message: "You already accepted this event" });
     }
+    if (event.accepted_persons_ids.length >= event.number_persons) {
+      return res.status(400).json({ message: "event is full" });
+    }
+    event.accepted_persons_ids.push({ user: user._id, addedAt: new Date() });
+    const response = await event.save();
+    return res.status(200).json({ message: "event accepted", event: response });
   } catch (error) {
     return res.status(500).json({ message: "something went wrong", error });
   }
@@ -164,12 +174,11 @@ export const DECLINE_EVENT_BY_ID = async (req: Request, res: Response) => {
     if (!user) {
       return res.status(401).json({ message: "You have provided bad data" });
     }
-    console.log(user._id);
-    console.log(event.accepted_persons_ids);
+
     const index = event.accepted_persons_ids.findIndex((id) =>
-      id._id.equals(user._id)
+      id.user._id.equals(user._id)
     );
-    console.log(index);
+
     if (index > -1) {
       event.accepted_persons_ids.splice(index, 1);
       const response = await event.save();
