@@ -1,8 +1,6 @@
-import mongoose, { Types } from "mongoose";
-import { ICreateEvent } from "../features/createEvent.types";
-import { IUser } from "../features/user.types";
+import mongoose from "mongoose";
+
 import { IEvent } from "../features/event.types";
-import user from "./user";
 
 const eventSchema = new mongoose.Schema<IEvent>({
   id: { type: String, required: true },
@@ -18,6 +16,7 @@ const eventSchema = new mongoose.Schema<IEvent>({
   price: { type: Number, required: true },
   boardgame_img_url: { type: String, required: true },
   accepted_persons_ids: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+  isCanceled: { type: Boolean, default: false },
 });
 
 export default mongoose.model("Event", eventSchema);

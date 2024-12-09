@@ -21,8 +21,8 @@ const authUser = async (req: Request, res: Response, next: NextFunction) => {
     req.body.userId = decoded.id;
     req.body.email = decoded.email;
     next();
-  } catch (err) {
-    console.log(err);
+  } catch {
+    console.log("Token error");
     return res.status(401).json({ message: "Unauthorized" });
   }
 };

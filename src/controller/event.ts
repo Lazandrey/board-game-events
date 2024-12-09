@@ -1,7 +1,6 @@
 import { Request, Response } from "express";
 import { v4 as uuidv4 } from "uuid";
 import { ICreateEvent } from "../features/createEvent.types";
-import { ICreateUser } from "../features/createUser.types";
 import userModel from "../model/user";
 import eventModel from "../model/event";
 import { isValidCreateEvent } from "../utils/validations";
@@ -32,12 +31,154 @@ export const CREATE_EVENT = async (req: Request, res: Response) => {
       price: req.body.price,
       boardgame_img_url: req.body.boardgame_img_url,
       accepted_persons_ids: [],
+      isCanceled: false,
     };
 
     const event = await eventModel.create(newEvent);
     const response = await event.save();
 
     return res.status(201).json({ message: "event created", event: response });
+  } catch (error) {
+    return res.status(500).json({ message: "something went wrong", error });
+  }
+};
+
+export const GET_EVENTS = async (req: Request, res: Response) => {
+  try {
+    const events = await eventModel.find();
+    return res.status(200).json({ message: "events found", events });
+  } catch (error) {
+    return res.status(500).json({ message: "something went wrong", error });
+  }
+};
+
+export const GET_EVENT_BY_ID = async (req: Request, res: Response) => {
+  try {
+    const event = await eventModel.findOne({ id: req.params.id });
+    if (!event) {
+      return res.status(404).json({ message: "event not found" });
+    }
+    return res.status(200).json({ message: "event found", event });
+  } catch (error) {
+    return res.status(500).json({ message: "something went wrong", error });
+  }
+};
+export const CANCEL_EVENT_BY_ID = async (req: Request, res: Response) => {
+  try {
+    const event = await eventModel.findOne({ id: req.params.id });
+    if (!event) {
+      return res.status(404).json({ message: "event not found" });
+    }
+    const host = await userModel.findOne({ id: req.body.userId });
+    if (!host) {
+      return res.status(401).json({ message: "You have provided bad data" });
+    }
+    if (!event.host_id.id === host.id) {
+      return res
+        .status(401)
+        .json({ message: "You are not the host of this event" });
+    }
+    event.isCanceled = true;
+    const response = await event.save();
+    return res.status(200).json({ message: "event canceled", event: response });
+  } catch (error) {
+    return res.status(500).json({ message: "something went wrong", error });
+  }
+};
+
+export const UPDATE_EVENT_BY_ID = async (req: Request, res: Response) => {
+  try {
+    const event = await eventModel.findOne({ id: req.params.id });
+    if (!event) {
+      return res.status(404).json({ message: "event not found" });
+    }
+    const host = await userModel.findOne({ id: req.body.userId });
+    if (!host) {
+      return res.status(401).json({ message: "You have provided bad data" });
+    }
+    if (!event.host_id.id === host.id) {
+      return res
+        .status(401)
+        .json({ message: "You are not the host of this event" });
+    }
+    const errors = await isValidCreateEvent(req.body);
+
+    if (errors.length > 0) {
+      return res
+        .status(400)
+        .json({ message: "we have some problems", errors: errors });
+    }
+
+    const updatedEvent = await eventModel.findOneAndUpdate(
+      { id: req.params.id },
+      req.body,
+      { new: true }
+    );
+
+    if (!updatedEvent) {
+      return res.status(404).json({ message: "event not found" });
+    }
+
+    return res
+      .status(200)
+      .json({ message: "event updated", event: updatedEvent });
+  } catch (error) {
+    return res.status(500).json({ message: "something went wrong", error });
+  }
+};
+export const ACCEPT_EVENT_BY_ID = async (req: Request, res: Response) => {
+  try {
+    const event = await eventModel.findOne({ id: req.params.id });
+    if (!event) {
+      return res.status(404).json({ message: "event not found" });
+    }
+    const user = await userModel.findOne({ id: req.body.userId });
+    if (!user) {
+      return res.status(401).json({ message: "You have provided bad data" });
+    }
+    const index = event.accepted_persons_ids.findIndex((id) =>
+      id._id.equals(user._id)
+    );
+    if (index === -1) {
+      event.accepted_persons_ids.push(user);
+      const response = await event.save();
+      return res
+        .status(200)
+        .json({ message: "event accepted", event: response });
+    } else {
+      return res
+        .status(400)
+        .json({ message: "You already accepted this event" });
+    }
+  } catch (error) {
+    return res.status(500).json({ message: "something went wrong", error });
+  }
+};
+export const DECLINE_EVENT_BY_ID = async (req: Request, res: Response) => {
+  try {
+    const event = await eventModel.findOne({ id: req.params.id });
+    if (!event) {
+      return res.status(404).json({ message: "event not found" });
+    }
+    const user = await userModel.findOne({ id: req.body.userId });
+    if (!user) {
+      return res.status(401).json({ message: "You have provided bad data" });
+    }
+    console.log(user._id);
+    console.log(event.accepted_persons_ids);
+    const index = event.accepted_persons_ids.findIndex((id) =>
+      id._id.equals(user._id)
+    );
+    console.log(index);
+    if (index > -1) {
+      event.accepted_persons_ids.splice(index, 1);
+      const response = await event.save();
+      return res
+        .status(200)
+        .json({ message: "event declined", event: response });
+    } else {
+      return res.status(400).json({ message: "You are not in this event" });
+    }
   } catch (error) {
     return res.status(500).json({ message: "something went wrong", error });
   }

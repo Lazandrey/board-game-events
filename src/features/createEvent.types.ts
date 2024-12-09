@@ -10,4 +10,5 @@ export interface ICreateEvent {
   price: number;
   boardgame_img_url: string;
   accepted_persons_ids: Types.ObjectId[];
+  isCanceled: boolean;
 }
