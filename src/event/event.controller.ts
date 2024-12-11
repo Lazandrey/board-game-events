@@ -15,7 +15,7 @@ export const CREATE_EVENT = async (req: Request, res: Response) => {
     }
     req.body.host = host._id;
     const errors = await isValidCreateEvent(req.body);
-    console.log(errors);
+
     if (Array.isArray(errors)) {
       return res
         .status(400)
@@ -117,6 +117,8 @@ export const UPDATE_EVENT_BY_ID = async (req: Request, res: Response) => {
         .status(401)
         .json({ message: "You are not the host of this event" });
     }
+
+    req.body.host = host._id;
     const errors = await isValidCreateEvent(req.body);
 
     if (Array.isArray(errors)) {
