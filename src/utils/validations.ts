@@ -1,53 +1,77 @@
+import {
+  object,
+  string,
+  number,
+  date,
+  boolean,
+  array,
+  ObjectSchema,
+} from "yup";
+
 import userModel from "../user/user.schema";
 import { ICreateUser } from "../user/user.types";
 import { ICreateEvent } from "../event/event.types";
+
+const userSchema: ObjectSchema<ICreateUser> = object({
+  id: string().default(""),
+  name: string().required("Name is required"),
+  email: string()
+    .email()
+    .required("Email is required")
+    .test("is email exists", "Email already exists", async (email) => {
+      const isEmailExist = await isClientEmailExists(email);
+      return !isEmailExist;
+    }),
+  password: string().required("Password is required"),
+});
+
+const eventSchema: ObjectSchema<ICreateEvent> = object({
+  id: string().default(""),
+  host: string()
+    .required("Host is required")
+    .test("user-exists", "Host must be a valid user", async (value) => {
+      if (!value) return false;
+      const userExists = await userModel.exists({ _id: value });
+      return !!userExists;
+    }),
+
+  number_persons: number().required("Number of persons is required"),
+  date_time: date().required("Date and time is required"),
+  boardgame_name: string().required("Board game name is required"),
+  description: string().required("Description is required"),
+  price: number().required("Price is required"),
+  boardgame_img_url: string().required("Board game image URL is required"),
+  address: object({
+    street: string().required("Street is required"),
+    city: string().required("City is required"),
+    country: string().required("Country is required"),
+  }),
+  accepted_persons_ids: array()
+    .of(
+      object({
+        user: string().required("User is required"),
+        addedAt: date().required("Added at is required"),
+      })
+    )
+    .default([]),
+  isCanceled: boolean().default(false),
+});
 
 const isClientEmailExists = async (email: string) => {
   const response = await userModel.findOne({ email: email });
   return response === null ? false : true;
 };
 const isValidCreateUser = async (user: ICreateUser) => {
-  const resposnse: string[] = [];
-  if (!user.name) {
-    resposnse.push("Name is required");
-  }
-  if (!user.email) {
-    resposnse.push("Email is required");
-  }
-  if (!user.password) {
-    resposnse.push("Password is required");
-  }
-
-  if (await isClientEmailExists(user.email)) {
-    resposnse.push("Email already exists");
-  }
-
-  return resposnse;
+  const response = await userSchema.validate(user, { abortEarly: false });
+  console.log("validation", response);
+  return response;
 };
 
 const isValidCreateEvent = async (event: ICreateEvent) => {
-  const resposnse: string[] = [];
+  console.log(event);
+  const response = await eventSchema.validate(event, { abortEarly: false });
 
-  if (!event.number_persons) {
-    resposnse.push("Number of persons is required");
-  }
-  if (!event.date_time) {
-    resposnse.push("Date and time is required");
-  }
-  if (!event.boardgame_name) {
-    resposnse.push("Boardgame name is required");
-  }
-  if (!event.description) {
-    resposnse.push("Description is required");
-  }
-  if (!event.price) {
-    resposnse.push("Price is required");
-  }
-  if (!event.boardgame_img_url) {
-    resposnse.push("Boardgame image url is required");
-  }
-
-  return resposnse;
+  return response;
 };
 
 export { isValidCreateUser, isValidCreateEvent };

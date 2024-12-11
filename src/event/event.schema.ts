@@ -22,6 +22,11 @@ const eventSchema = new mongoose.Schema<IEvent>({
     },
   ],
   isCanceled: { type: Boolean, default: false },
+  address: {
+    street: { type: String },
+    city: { type: String },
+    country: { type: String },
+  },
 });
 
 export default mongoose.model("Event", eventSchema);

@@ -8,14 +8,15 @@ import { isValidCreateEvent } from "../utils/validations";
 export const CREATE_EVENT = async (req: Request, res: Response) => {
   try {
     const host = await userModel.findOne({ id: req.body.userId });
+    console.log(host);
 
     if (!host) {
       return res.status(401).json({ message: "You have provided bad data" });
     }
-
+    req.body.host = host._id;
     const errors = await isValidCreateEvent(req.body);
-
-    if (errors.length > 0) {
+    console.log(errors);
+    if (Array.isArray(errors)) {
       return res
         .status(400)
         .json({ message: "we have some problems", errors: errors });
@@ -32,6 +33,11 @@ export const CREATE_EVENT = async (req: Request, res: Response) => {
       boardgame_img_url: req.body.boardgame_img_url,
       accepted_persons_ids: [],
       isCanceled: false,
+      address: {
+        street: req.body.address.street,
+        city: req.body.address.city,
+        country: req.body.address.country,
+      },
     };
 
     const event = await eventModel.create(newEvent);
@@ -113,7 +119,7 @@ export const UPDATE_EVENT_BY_ID = async (req: Request, res: Response) => {
     }
     const errors = await isValidCreateEvent(req.body);
 
-    if (errors.length > 0) {
+    if (Array.isArray(errors)) {
       return res
         .status(400)
         .json({ message: "we have some problems", errors: errors });

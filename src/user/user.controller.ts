@@ -12,22 +12,23 @@ export const SIGNIN = async (
   req: Request<object, object, ICreateUser>,
   res: Response
 ) => {
-  const errors = await isValidCreateUser(req.body);
-
-  if (errors.length > 0) {
-    return res
-      .status(400)
-      .json({ message: "we have some problems", errors: errors });
-  }
-  const salt = bcrypt.genSaltSync(10);
-  const hash = bcrypt.hashSync(req.body.password, salt);
-  const newUser: ICreateUser = {
-    id: uuidv4(),
-    name: req.body.name,
-    email: req.body.email,
-    password: hash,
-  };
   try {
+    const errors = await isValidCreateUser(req.body);
+
+    if (Array.isArray(errors)) {
+      return res
+        .status(400)
+        .json({ message: "we have some problems", errors: errors });
+    }
+    const salt = bcrypt.genSaltSync(10);
+    const hash = bcrypt.hashSync(req.body.password, salt);
+    const newUser: ICreateUser = {
+      id: uuidv4(),
+      name: req.body.name,
+      email: req.body.email,
+      password: hash,
+    };
+
     const user = await userModel.create(newUser);
     return res.status(201).json({ message: "user created", user });
   } catch (error) {
