@@ -8,7 +8,7 @@ import {
   UPDATE_EVENT_BY_ID,
   ACCEPT_EVENT_BY_ID,
   DECLINE_EVENT_BY_ID,
-} from "../controller/event";
+} from "./event.controller";
 
 const router = express.Router();
 

@@ -1,6 +1,6 @@
-import userModel from "../model/user";
-import { ICreateUser } from "../features/createUser.types";
-import { ICreateEvent } from "../features/createEvent.types";
+import userModel from "../user/user.schema";
+import { ICreateUser } from "../user/user.types";
+import { ICreateEvent } from "../event/event.types";
 
 const isClientEmailExists = async (email: string) => {
   const response = await userModel.findOne({ email: email });

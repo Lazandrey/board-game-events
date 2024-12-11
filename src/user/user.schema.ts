@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { ICreateUser } from "../features/createUser.types";
+import { ICreateUser } from "./user.types";
 
 const userSchema = new mongoose.Schema<ICreateUser>({
   id: { type: String, required: true },

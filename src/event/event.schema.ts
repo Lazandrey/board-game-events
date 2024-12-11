@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-import { IEvent } from "../features/event.types";
+import { IEvent } from "./event.types";
 
 const eventSchema = new mongoose.Schema<IEvent>({
   id: { type: String, required: true },

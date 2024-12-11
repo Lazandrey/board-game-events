@@ -4,12 +4,12 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import "dotenv/config";
 
-import userModel from "../model/user";
-import { ICreateUser } from "../features/createUser.types";
+import userModel from "./user.schema";
+import { ICreateUser } from "./user.types";
 import { isValidCreateUser } from "../utils/validations";
 
 export const SIGNIN = async (
-  req: Request<object, {}, ICreateUser>,
+  req: Request<object, object, ICreateUser>,
   res: Response
 ) => {
   const errors = await isValidCreateUser(req.body);
@@ -36,7 +36,7 @@ export const SIGNIN = async (
 };
 
 export const LOGIN = async (
-  req: Request<{}, {}, ICreateUser>,
+  req: Request<object, object, ICreateUser>,
   res: Response
 ) => {
   try {

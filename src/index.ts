@@ -4,8 +4,8 @@ import mongoose from "mongoose";
 
 import "dotenv/config";
 
-import userRouter from "./route/user";
-import eventRouter from "./route/event";
+import userRouter from "./user/user.route";
+import eventRouter from "./event/event.route";
 
 const port = process.env.PORT || 3000;
 

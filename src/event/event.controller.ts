@@ -1,8 +1,8 @@
 import { Request, Response } from "express";
 import { v4 as uuidv4 } from "uuid";
-import { ICreateEvent } from "../features/createEvent.types";
-import userModel from "../model/user";
-import eventModel from "../model/event";
+import { ICreateEvent } from "./event.types";
+import userModel from "../user/user.schema";
+import eventModel from "./event.schema";
 import { isValidCreateEvent } from "../utils/validations";
 
 export const CREATE_EVENT = async (req: Request, res: Response) => {
