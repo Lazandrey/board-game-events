@@ -6,6 +6,7 @@ import "dotenv/config";
 
 import userRouter from "./user/user.route";
 import eventRouter from "./event/event.route";
+import gameRouter from "./game/game.route";
 
 const port = process.env.PORT || 3000;
 
@@ -15,6 +16,7 @@ app.use(express.json());
 
 app.use(userRouter);
 app.use(eventRouter);
+app.use(gameRouter);
 
 app.use((req, res) => {
   res.status(404).json({ response: "your endpoint does not exit" });
@@ -26,6 +28,7 @@ const main = async () => {
       dbName: "boardgameevents",
     });
     console.log("Connected!");
+
     app.listen(port, () => {
       console.log(`App listening on http://localhost:${port}`);
     });
