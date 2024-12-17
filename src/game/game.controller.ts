@@ -8,13 +8,16 @@ export const GET_GAMES = async (req: Request, res: Response) => {
     const gamesOnPage =
       typeof req.query.gamesOnPage === "string"
         ? parseInt(req.query.gamesOnPage, 10)
-        : 10;
+        : 1000;
     const games = await gameModel
       .find({ title: new RegExp(req.query.title as string, "i") })
-      .sort({ [req.query.sortField as string]: 1 })
+      .sort({ [req.query.sortField as string]: -1 })
       .skip(start)
       .limit(gamesOnPage);
-    return res.status(200).json({ message: "games found", games });
+    const count = await gameModel.countDocuments({
+      title: new RegExp(req.query.title as string, "i"),
+    });
+    return res.status(200).json({ message: "games found", games, count });
   } catch (error) {
     return res.status(500).json({ message: "something went wrong", error });
   }
@@ -27,6 +30,17 @@ export const GET_GAME_BY_ID = async (req: Request, res: Response) => {
       return res.status(404).json({ message: "game not found" });
     }
     return res.status(200).json({ message: "game found", game });
+  } catch (error) {
+    return res.status(500).json({ message: "something went wrong", error });
+  }
+};
+
+export const GED_GAMES_COUNT = async (req: Request, res: Response) => {
+  try {
+    const count = await gameModel.countDocuments({
+      title: new RegExp(req.query.title as string, "i"),
+    });
+    return res.status(200).json({ message: "games count found", count });
   } catch (error) {
     return res.status(500).json({ message: "something went wrong", error });
   }

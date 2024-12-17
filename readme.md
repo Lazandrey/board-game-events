@@ -1,6 +1,7 @@
 added games to database
 adeded routes for games with url parameters
-/game?title=War&sortField=rating&start=10&gamesOnPage=2
+http://localhost:3002/game?title=War&sortField=rating&start=10&gamesOnPage=2
+http://localhost:3002/game?title=&sortField=rating&start=40&gamesOnPage=20
 
 title - find by title
 sortField - sort by field  
