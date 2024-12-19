@@ -3,15 +3,21 @@ import { v4 as uuidv4 } from "uuid";
 import { ICreateEvent } from "./event.types";
 import userModel from "../user/user.schema";
 import eventModel from "./event.schema";
+import gameModel from "../game/game.schema";
 import { isValidCreateEvent } from "../utils/validations";
 
 export const CREATE_EVENT = async (req: Request, res: Response) => {
   try {
     const host = await userModel.findOne({ id: req.body.userId });
-    console.log(host);
-
     if (!host) {
       return res.status(401).json({ message: "You have provided bad data" });
+    }
+    const game = await gameModel.findById(req.body.game);
+
+    if (!game) {
+      return res
+        .status(401)
+        .json({ message: "Game not found. You have provided bad data" });
     }
     req.body.host = host._id;
     const errors = await isValidCreateEvent(req.body);
@@ -27,10 +33,9 @@ export const CREATE_EVENT = async (req: Request, res: Response) => {
       host: host._id,
       number_persons: req.body.number_persons,
       date_time: req.body.date_time,
-      boardgame_name: req.body.boardgame_name,
+      game: game._id,
       description: req.body.description,
       price: req.body.price,
-      boardgame_img_url: req.body.boardgame_img_url,
       accepted_persons_ids: [],
       isCanceled: false,
       address: {
@@ -39,7 +44,7 @@ export const CREATE_EVENT = async (req: Request, res: Response) => {
         country: req.body.address.country,
       },
     };
-
+    console.log(newEvent);
     const event = await eventModel.create(newEvent);
     const response = await event.save();
 
@@ -53,12 +58,9 @@ export const GET_EVENTS = async (req: Request, res: Response) => {
   try {
     const events = await eventModel
       .find()
-      .populate({ path: "host", select: "name", transform: (doc) => doc.name })
-      .populate({
-        path: "accepted_persons_ids.user",
-        select: "name",
-        transform: (doc) => doc?.name,
-      });
+      .populate("host", "name")
+      .populate("game")
+      .populate("accepted_persons_ids.user", "name");
     return res.status(200).json({ message: "events found", events });
   } catch (error) {
     return res.status(500).json({ message: "something went wrong", error });
@@ -70,6 +72,7 @@ export const GET_EVENT_BY_ID = async (req: Request, res: Response) => {
     const event = await eventModel
       .findOne({ id: req.params.id })
       .populate("host", "name")
+      .populate("game")
       .populate("accepted_persons_ids.user", "name");
     if (!event) {
       return res.status(404).json({ message: "event not found" });
