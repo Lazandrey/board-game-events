@@ -170,7 +170,9 @@ export const ACCEPT_EVENT_BY_ID = async (req: Request, res: Response) => {
     }
     event.accepted_persons_ids.push({ user: user._id, addedAt: new Date() });
     const response = await event.save();
-    return res.status(200).json({ message: "event accepted", event: response });
+    return res
+      .status(200)
+      .json({ message: "event accepted", event: response, user });
   } catch (error) {
     return res.status(500).json({ message: "something went wrong", error });
   }
@@ -198,6 +200,99 @@ export const DECLINE_EVENT_BY_ID = async (req: Request, res: Response) => {
         .json({ message: "event declined", event: response });
     } else {
       return res.status(400).json({ message: "You are not in this event" });
+    }
+  } catch (error) {
+    return res.status(500).json({ message: "something went wrong", error });
+  }
+};
+
+export const GET_EVENTS_BY_USER_ID = async (req: Request, res: Response) => {
+  try {
+    const events = await eventModel
+      .find({ "accepted_persons_ids.user": req.params.userId })
+      .populate("host", "name")
+      .populate("game")
+      .populate("accepted_persons_ids.user", "name");
+    return res.status(200).json({ message: "events found", events });
+  } catch (error) {
+    return res.status(500).json({ message: "something went wrong", error });
+  }
+};
+
+export const GET_EVENTS_BY_GAME_ID = async (req: Request, res: Response) => {
+  try {
+    const events = await eventModel
+      .find({ game: req.params.gameId })
+      .populate("host", "name")
+      .populate("game")
+      .populate("accepted_persons_ids.user", "name");
+    return res.status(200).json({ message: "events found", events });
+  } catch (error) {
+    return res.status(500).json({ message: "something went wrong", error });
+  }
+};
+
+export const GET_EVENTS_BY_HOST_ID = async (req: Request, res: Response) => {
+  try {
+    const events = await eventModel
+      .find({ host: req.params.hostId })
+      .populate("host", "name")
+      .populate("game")
+      .populate("accepted_persons_ids.user", "name");
+    return res.status(200).json({ message: "events found", events });
+  } catch (error) {
+    return res.status(500).json({ message: "something went wrong", error });
+  }
+};
+export const GET_EVENTS_BY_IS_CANCELED = async (
+  req: Request,
+  res: Response
+) => {
+  try {
+    const events = await eventModel
+      .find({ isCanceled: req.params.isCanceled })
+      .populate("host", "name")
+      .populate("game")
+      .populate("accepted_persons_ids.user", "name");
+    return res.status(200).json({ message: "events found", events });
+  } catch (error) {
+    return res.status(500).json({ message: "something went wrong", error });
+  }
+};
+
+export const GET_EVENTS_BY_IS_ACCEPTED = async (
+  req: Request,
+  res: Response
+) => {
+  try {
+    const events = await eventModel
+      .find({ "accepted_persons_ids.user": req.params.isAccepted })
+      .populate("host", "name")
+      .populate("game")
+      .populate("accepted_persons_ids.user", "name");
+    return res.status(200).json({ message: "events found", events });
+  } catch (error) {
+    return res.status(500).json({ message: "something went wrong", error });
+  }
+};
+
+export const IS_USER_IN_EVENT = async (req: Request, res: Response) => {
+  try {
+    const event = await eventModel.findOne({ id: req.params.id });
+    if (!event) {
+      return res.status(404).json({ message: "event not found" });
+    }
+    const user = await userModel.findOne({ id: req.body.userId });
+    if (!user) {
+      return res.status(401).json({ message: "You have provided bad data" });
+    }
+    const index = event.accepted_persons_ids.findIndex((id) =>
+      id.user._id.equals(user._id)
+    );
+    if (index > -1) {
+      return res.status(200).json({ message: true, userid: user._id });
+    } else {
+      return res.status(200).json({ message: false });
     }
   } catch (error) {
     return res.status(500).json({ message: "something went wrong", error });

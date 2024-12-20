@@ -8,6 +8,7 @@ import {
   UPDATE_EVENT_BY_ID,
   ACCEPT_EVENT_BY_ID,
   DECLINE_EVENT_BY_ID,
+  IS_USER_IN_EVENT,
 } from "./event.controller";
 
 const router = express.Router();
@@ -29,6 +30,16 @@ router.get("/event", async (req, res) => {
 router.get("/event/:id", async (req, res) => {
   await GET_EVENT_BY_ID(req, res);
 });
+
+router.get(
+  "/event/:id/checkuser",
+  async (req, res, next) => {
+    await authUser(req, res, next);
+  },
+  async (req, res) => {
+    await IS_USER_IN_EVENT(req, res);
+  }
+);
 
 router.put(
   "/event/:id/cancel",
