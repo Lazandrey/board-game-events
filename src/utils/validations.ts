@@ -11,7 +11,7 @@ import {
 import userModel from "../user/user.schema";
 import gameModel from "../game/game.schema";
 import { ICreateUser } from "../user/user.types";
-import { ICreateEvent } from "../event/event.types";
+import { ICreateEvent, IEvent } from "../event/event.types";
 
 const userSchema: ObjectSchema<ICreateUser> = object({
   id: string().default(""),
@@ -69,15 +69,16 @@ const isClientEmailExists = async (email: string) => {
 };
 const isValidCreateUser = async (user: ICreateUser) => {
   const response = await userSchema.validate(user, { abortEarly: false });
-  console.log("validation", response);
   return response;
 };
 
 const isValidCreateEvent = async (event: ICreateEvent) => {
-  console.log(event);
   const response = await eventSchema.validate(event, { abortEarly: false });
-
+  return response;
+};
+const isValidUpdateEvent = async (event: IEvent) => {
+  const response = await eventSchema.validate(event, { abortEarly: false });
   return response;
 };
 
-export { isValidCreateUser, isValidCreateEvent };
+export { isValidCreateUser, isValidCreateEvent, isValidUpdateEvent };

@@ -16,7 +16,11 @@ const eventSchema = new mongoose.Schema<IEvent>({
     ref: "Game",
     required: true,
   },
-  description: { type: String, required: true },
+  description: {
+    type: String,
+    required: [true, "need description"],
+    default: "",
+  },
   price: { type: Number, required: true },
   accepted_persons_ids: [
     {

@@ -4,11 +4,13 @@ import { ICreateEvent } from "./event.types";
 import userModel from "../user/user.schema";
 import eventModel from "./event.schema";
 import gameModel from "../game/game.schema";
-import { isValidCreateEvent } from "../utils/validations";
+import { isValidCreateEvent, isValidUpdateEvent } from "../utils/validations";
+import { Types } from "mongoose";
 
 export const CREATE_EVENT = async (req: Request, res: Response) => {
   try {
     const host = await userModel.findOne({ id: req.body.userId });
+
     if (!host) {
       return res.status(401).json({ message: "You have provided bad data" });
     }
@@ -20,13 +22,7 @@ export const CREATE_EVENT = async (req: Request, res: Response) => {
         .json({ message: "Game not found. You have provided bad data" });
     }
     req.body.host = host._id;
-    const errors = await isValidCreateEvent(req.body);
-
-    if (Array.isArray(errors)) {
-      return res
-        .status(400)
-        .json({ message: "we have some problems", errors: errors });
-    }
+    console.log("req.body", req.body);
 
     const newEvent: ICreateEvent = {
       id: uuidv4(),
@@ -44,8 +40,31 @@ export const CREATE_EVENT = async (req: Request, res: Response) => {
         country: req.body.address.country,
       },
     };
-    console.log(newEvent);
+    if (
+      req.body.accepted_persons_ids.length > 0 &&
+      req.body.accepted_persons_ids
+    ) {
+      for (let i = 0; i < req.body.accepted_persons_ids.length; i++) {
+        const user = await userModel.findOne({
+          id: req.body.accepted_persons_ids[i].user,
+        });
+        if (user) {
+          newEvent.accepted_persons_ids.push({
+            user: user._id,
+            addedAt: req.body.accepted_persons_ids[i].addedAt,
+          });
+        }
+      }
+    }
+    const errors = await isValidCreateEvent(newEvent);
+
+    if (Array.isArray(errors)) {
+      return res
+        .status(400)
+        .json({ message: "we have some problems", errors: errors });
+    }
     const event = await eventModel.create(newEvent);
+    console.log("event1111", event);
     const response = await event.save();
 
     return res.status(201).json({ message: "event created", event: response });
@@ -53,16 +72,51 @@ export const CREATE_EVENT = async (req: Request, res: Response) => {
     return res.status(500).json({ message: "something went wrong", error });
   }
 };
+type SearchOptions = {
+  title?: string;
+  host?: Types.ObjectId;
+  date_time?: { $gte: Date };
+  isCanceled?: boolean;
+};
 
 export const GET_EVENTS = async (req: Request, res: Response) => {
   try {
-    const events = await eventModel
-      .find()
-      .populate("host", "name")
+    const hostId = req.query.hostId as string;
+    let startDate: Date | null = null;
+    if (!(req.query.startDate === "undefined")) {
+      startDate = new Date(req.query.startDate as string);
+    }
+    const title = req.query.title as string;
+    const isCanceled = req.query.isCanceled as string;
+    const searchOptions: SearchOptions = {};
+    if (hostId && hostId !== "undefined") {
+      const host = await userModel.findOne({ id: hostId });
+      if (!host) {
+        return res.status(404).json({ message: "host not found" });
+      }
+      searchOptions.host = host?._id;
+    }
+    if (startDate) {
+      searchOptions.date_time = { $gte: startDate };
+    }
+    if (title && title !== "undefined") {
+      searchOptions.title = title;
+    }
+    if (isCanceled && isCanceled !== "undefined") {
+      searchOptions.isCanceled = isCanceled === "true";
+    }
+    console.log(searchOptions);
+    const eventsFound = await eventModel
+      .find(searchOptions)
+      .populate("host", { name: 1, id: 1 })
       .populate("game")
-      .populate("accepted_persons_ids.user", "name");
-    return res.status(200).json({ message: "events found", events });
+      .populate("accepted_persons_ids.user", { name: 1, id: 1 })
+      .sort({ date_time: 1 });
+    return res
+      .status(200)
+      .json({ message: "events found", events: eventsFound });
   } catch (error) {
+    console.log(error);
     return res.status(500).json({ message: "something went wrong", error });
   }
 };
@@ -71,9 +125,10 @@ export const GET_EVENT_BY_ID = async (req: Request, res: Response) => {
   try {
     const event = await eventModel
       .findOne({ id: req.params.id })
-      .populate("host", "name")
+      .populate("host", { name: 1, id: 1 })
       .populate("game")
-      .populate("accepted_persons_ids.user", "name");
+      .populate("accepted_persons_ids.user", { name: 1, id: 1 });
+
     if (!event) {
       return res.status(404).json({ message: "event not found" });
     }
@@ -107,6 +162,7 @@ export const CANCEL_EVENT_BY_ID = async (req: Request, res: Response) => {
 
 export const UPDATE_EVENT_BY_ID = async (req: Request, res: Response) => {
   try {
+    console.log("req.body", req.body);
     const event = await eventModel.findOne({ id: req.params.id });
     if (!event) {
       return res.status(404).json({ message: "event not found" });
@@ -120,9 +176,32 @@ export const UPDATE_EVENT_BY_ID = async (req: Request, res: Response) => {
         .status(401)
         .json({ message: "You are not the host of this event" });
     }
-
     req.body.host = host._id;
-    const errors = await isValidCreateEvent(req.body);
+    const game = await gameModel.findById(req.body.game);
+
+    if (!game) {
+      return res
+        .status(401)
+        .json({ message: "Game not found. You have provided bad data" });
+    }
+    req.body.game = game._id;
+    const userArray = req.body.accepted_persons_ids;
+    req.body.accepted_persons_ids = [];
+    if (userArray.length > 0 && userArray) {
+      for (let i = 0; i < userArray.length; i++) {
+        const user = await userModel.findOne({
+          id: userArray[i].user,
+        });
+        if (user) {
+          req.body.accepted_persons_ids.push({
+            user: user._id,
+            addedAt: req.body.accepted_persons_ids[i].addedAt,
+          });
+        }
+      }
+    }
+
+    const errors = await isValidUpdateEvent(req.body);
 
     if (Array.isArray(errors)) {
       return res
@@ -144,6 +223,7 @@ export const UPDATE_EVENT_BY_ID = async (req: Request, res: Response) => {
       .status(200)
       .json({ message: "event updated", event: updatedEvent });
   } catch (error) {
+    console.log(error);
     return res.status(500).json({ message: "something went wrong", error });
   }
 };

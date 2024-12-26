@@ -67,13 +67,13 @@ export const LOGIN = async (
       { expiresIn: "12h" }
     );
 
-    return res
-      .status(200)
-      .json({
-        message: "Successfull login",
-        token: token,
-        userName: user.name,
-      });
+    return res.status(200).json({
+      message: "Successfull login",
+      token: token,
+      userName: user.name,
+      userId: user.id,
+      user_id: user._id,
+    });
   } catch (err) {
     console.log(err);
     return res.status(500).json({ message: "we have some problems" });

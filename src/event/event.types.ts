@@ -23,7 +23,7 @@ export type ICreateEvent = {
   description: string;
   price: number;
   accepted_persons_ids: {
-    user: string;
+    user: string | Types.ObjectId;
     addedAt: Date;
   }[];
   isCanceled: boolean;
