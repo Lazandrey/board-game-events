@@ -33,6 +33,7 @@ const eventSchema: ObjectSchema<ICreateEvent> = object({
     .test("user-exists", "Host must be a valid user", async (value) => {
       if (!value) return false;
       const userExists = await userModel.exists({ _id: value });
+
       return !!userExists;
     }),
 
@@ -61,6 +62,13 @@ const eventSchema: ObjectSchema<ICreateEvent> = object({
     )
     .default([]),
   isCanceled: boolean().default(false),
+  geolocation: object({
+    address: string().required("Address is required"),
+    location: object({
+      longitude: number().required("Longitude is required"),
+      latitude: number().required("Latitude is required"),
+    }),
+  }),
 });
 
 const isClientEmailExists = async (email: string) => {

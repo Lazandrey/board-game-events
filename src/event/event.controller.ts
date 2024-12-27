@@ -7,6 +7,27 @@ import gameModel from "../game/game.schema";
 import { isValidCreateEvent, isValidUpdateEvent } from "../utils/validations";
 import { Types } from "mongoose";
 
+import { ApiKeyManager } from "@esri/arcgis-rest-request";
+import { geocode } from "@esri/arcgis-rest-geocoding";
+
+const authentication = ApiKeyManager.fromKey(
+  process.env.ARCGIS_API_KEY as string
+);
+
+const getGeocode = async (address: {
+  street: string;
+  city: string;
+  country: string;
+}) => {
+  const geocodeAdress = {
+    address: address.street + " " + address.city,
+    countryCode: address.country,
+    authentication,
+  };
+  const response = await geocode(geocodeAdress);
+  return response;
+};
+
 export const CREATE_EVENT = async (req: Request, res: Response) => {
   try {
     const host = await userModel.findOne({ id: req.body.userId });
@@ -22,7 +43,13 @@ export const CREATE_EVENT = async (req: Request, res: Response) => {
         .json({ message: "Game not found. You have provided bad data" });
     }
     req.body.host = host._id;
-    console.log("req.body", req.body);
+    const geocodeAddress = await getGeocode(req.body.address);
+    console.log(geocodeAddress);
+    if (geocodeAddress.candidates.length <= 0) {
+      return res
+        .status(401)
+        .json({ message: "Address not found. You have provided bad data" });
+    }
 
     const newEvent: ICreateEvent = {
       id: uuidv4(),
@@ -39,14 +66,22 @@ export const CREATE_EVENT = async (req: Request, res: Response) => {
         city: req.body.address.city,
         country: req.body.address.country,
       },
+      geolocation: {
+        address: geocodeAddress.candidates[0].address,
+        location: {
+          longitude: geocodeAddress.candidates[0].location.x,
+          latitude: geocodeAddress.candidates[0].location.y,
+        },
+      },
     };
+    console.log(req.body.accepted_persons_ids);
     if (
       req.body.accepted_persons_ids.length > 0 &&
       req.body.accepted_persons_ids
     ) {
       for (let i = 0; i < req.body.accepted_persons_ids.length; i++) {
         const user = await userModel.findOne({
-          id: req.body.accepted_persons_ids[i].user,
+          id: req.body.accepted_persons_ids[i].user.id,
         });
         if (user) {
           newEvent.accepted_persons_ids.push({
@@ -56,6 +91,7 @@ export const CREATE_EVENT = async (req: Request, res: Response) => {
         }
       }
     }
+    console.log(newEvent);
     const errors = await isValidCreateEvent(newEvent);
 
     if (Array.isArray(errors)) {
@@ -64,11 +100,12 @@ export const CREATE_EVENT = async (req: Request, res: Response) => {
         .json({ message: "we have some problems", errors: errors });
     }
     const event = await eventModel.create(newEvent);
-    console.log("event1111", event);
+
     const response = await event.save();
 
     return res.status(201).json({ message: "event created", event: response });
   } catch (error) {
+    console.log(error);
     return res.status(500).json({ message: "something went wrong", error });
   }
 };
@@ -77,6 +114,12 @@ type SearchOptions = {
   host?: Types.ObjectId;
   date_time?: { $gte: Date };
   isCanceled?: boolean;
+  $or?: [
+    {
+      host?: Types.ObjectId;
+    },
+    { accepted_persons_ids?: { $elemMatch: { user: Types.ObjectId } } }
+  ];
 };
 
 export const GET_EVENTS = async (req: Request, res: Response) => {
@@ -94,7 +137,10 @@ export const GET_EVENTS = async (req: Request, res: Response) => {
       if (!host) {
         return res.status(404).json({ message: "host not found" });
       }
-      searchOptions.host = host?._id;
+      searchOptions.$or = [
+        { host: host?._id },
+        { accepted_persons_ids: { $elemMatch: { user: host?._id } } },
+      ];
     }
     if (startDate) {
       searchOptions.date_time = { $gte: startDate };
@@ -105,7 +151,7 @@ export const GET_EVENTS = async (req: Request, res: Response) => {
     if (isCanceled && isCanceled !== "undefined") {
       searchOptions.isCanceled = isCanceled === "true";
     }
-    console.log(searchOptions);
+
     const eventsFound = await eventModel
       .find(searchOptions)
       .populate("host", { name: 1, id: 1 })
@@ -185,6 +231,24 @@ export const UPDATE_EVENT_BY_ID = async (req: Request, res: Response) => {
         .json({ message: "Game not found. You have provided bad data" });
     }
     req.body.game = game._id;
+
+    if (!(event.address === req.body.address)) {
+      const geocodeAddress = await getGeocode(req.body.address);
+      console.log(geocodeAddress);
+      if (geocodeAddress.candidates.length <= 0) {
+        return res
+          .status(401)
+          .json({ message: "Address not found. You have provided bad data" });
+      }
+      console.log(geocodeAddress.candidates[0]);
+      req.body.geolocation = {
+        address: geocodeAddress.candidates[0].address,
+        location: {
+          longitude: geocodeAddress.candidates[0].location.x,
+          latitude: geocodeAddress.candidates[0].location.y,
+        },
+      };
+    }
     const userArray = req.body.accepted_persons_ids;
     req.body.accepted_persons_ids = [];
     if (userArray.length > 0 && userArray) {

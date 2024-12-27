@@ -34,6 +34,13 @@ const eventSchema = new mongoose.Schema<IEvent>({
     city: { type: String },
     country: { type: String },
   },
+  geolocation: {
+    address: { type: String },
+    location: {
+      longitude: { type: Number },
+      latitude: { type: Number },
+    },
+  },
 });
 
 export default mongoose.model("Event", eventSchema);
