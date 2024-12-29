@@ -30,8 +30,22 @@ export const SIGNIN = async (
     };
 
     const user = await userModel.create(newUser);
-    return res.status(201).json({ message: "user created", user });
+    const key = process.env.TOKEN_KEY;
+    if (!key) {
+      throw new Error("we have some problems");
+    }
+    const token = jwt.sign(
+      {
+        id: user.id,
+        email: user.email,
+      },
+      key,
+      { expiresIn: "12h" }
+    );
+
+    return res.status(201).json({ message: "user created", user, token });
   } catch (error) {
+    console.log(error);
     return res.status(500).json({ message: "something went wrong", error });
   }
 };
