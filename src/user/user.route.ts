@@ -1,6 +1,7 @@
 import express from "express";
 
-import { SIGNIN, LOGIN } from "../user/user.controller";
+import { SIGNIN, LOGIN, UPDATE_USER } from "../user/user.controller";
+import authUser from "../middleware/authUser";
 
 const router = express.Router();
 
@@ -11,4 +12,13 @@ router.post("/user/login", async (req, res) => {
   await LOGIN(req, res);
 });
 
+router.put(
+  "/user/update",
+  async (req, res, next) => {
+    await authUser(req, res, next);
+  },
+  async (req, res) => {
+    await UPDATE_USER(req, res);
+  }
+);
 export default router;

@@ -5,7 +5,7 @@ import jwt from "jsonwebtoken";
 import "dotenv/config";
 
 import userModel from "./user.schema";
-import { ICreateUser } from "./user.types";
+import { ICreateUser, IUpdateUser } from "./user.types";
 import { isValidCreateUser } from "../utils/validations";
 
 export const SIGNIN = async (
@@ -45,7 +45,6 @@ export const SIGNIN = async (
 
     return res.status(201).json({ message: "user created", user, token });
   } catch (error) {
-    console.log(error);
     return res.status(500).json({ message: "something went wrong", error });
   }
 };
@@ -72,6 +71,7 @@ export const LOGIN = async (
     if (!key) {
       throw new Error("we have some problems");
     }
+
     const token = jwt.sign(
       {
         id: user.id,
@@ -89,6 +89,65 @@ export const LOGIN = async (
       user_id: user._id,
     });
   } catch (err) {
+    console.log(err);
+    return res.status(500).json({ message: "we have some problems" });
+  }
+};
+
+export const UPDATE_USER = async (
+  req: Request<object, object, IUpdateUser>,
+  res: Response
+) => {
+  try {
+    const user = await userModel.findOne({ id: req.body.id });
+    if (!user) {
+      return res.status(401).json({ message: "You have provided bad data" });
+    }
+
+    const isValidPassword = bcrypt.compareSync(
+      req.body.password,
+      user.password
+    );
+
+    if (!isValidPassword) {
+      return res.status(401).json({ message: "You have provided bad data" });
+    }
+    const key = process.env.TOKEN_KEY;
+    if (!key) {
+      console.log("key");
+      return res.status(500).json({ message: "we have some problems" });
+    }
+
+    if (req.body.newPassword !== "") {
+      console.log("req.body.newPassword", req.body.newPassword);
+      const salt = bcrypt.genSaltSync(10);
+      const hash = bcrypt.hashSync(req.body.newPassword, salt);
+      user.password = hash;
+    }
+
+    user.name = req.body.name;
+    user.email = req.body.email;
+
+    const token = jwt.sign(
+      {
+        id: user.id,
+        email: user.email,
+      },
+      key,
+      { expiresIn: "12h" }
+    );
+
+    await user.save();
+
+    return res.status(200).json({
+      message: "Successfull login",
+      token: token,
+      userName: user.name,
+      userId: user.id,
+      user_id: user._id,
+    });
+  } catch (err) {
+    console.log("err");
     console.log(err);
     return res.status(500).json({ message: "we have some problems" });
   }

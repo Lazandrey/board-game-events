@@ -12,3 +12,10 @@ export type ICreateUser = {
   email: string;
   password: string;
 };
+export type IUpdateUser = {
+  id: string;
+  name: string;
+  email: string;
+  password: string;
+  newPassword: string;
+};
