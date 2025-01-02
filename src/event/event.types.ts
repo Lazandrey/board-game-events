@@ -13,9 +13,10 @@ export type IEvent = {
   accepted_persons_ids: { user: Types.ObjectId; addedAt: Date }[];
   isCanceled: boolean;
   address: { street: string; city: string; country: string };
+  rawAddress: string;
   geolocation: {
-    address: string;
-    location: { longitude: number; latitude: number };
+    type: "Point";
+    coordinates: [number];
   };
 };
 export type ICreateEvent = {
@@ -32,8 +33,9 @@ export type ICreateEvent = {
   }[];
   isCanceled: boolean;
   address: { street: string; city: string; country: string };
+  rawAddress: string;
   geolocation: {
-    address: string;
-    location: { longitude: number; latitude: number };
+    type: "Point" | string;
+    coordinates: number[];
   };
 };

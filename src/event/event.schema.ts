@@ -34,12 +34,10 @@ const eventSchema = new mongoose.Schema<IEvent>({
     city: { type: String },
     country: { type: String },
   },
+  rawAddress: { type: String },
   geolocation: {
-    address: { type: String },
-    location: {
-      longitude: { type: Number },
-      latitude: { type: Number },
-    },
+    type: { type: String },
+    coordinates: [Number],
   },
 });
 

@@ -53,6 +53,7 @@ const eventSchema: ObjectSchema<ICreateEvent> = object({
     city: string().required("City is required"),
     country: string().required("Country is required"),
   }),
+  rawAddress: string().required("Raw address is required"),
   accepted_persons_ids: array()
     .of(
       object({
@@ -63,11 +64,11 @@ const eventSchema: ObjectSchema<ICreateEvent> = object({
     .default([]),
   isCanceled: boolean().default(false),
   geolocation: object({
-    address: string().required("Address is required"),
-    location: object({
-      longitude: number().required("Longitude is required"),
-      latitude: number().required("Latitude is required"),
-    }),
+    type: string().required("Type is required"),
+
+    coordinates: array()
+      .of(number().required())
+      .required("Coordinates are required"),
   }),
 });
 

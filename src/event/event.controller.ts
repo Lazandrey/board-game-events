@@ -66,15 +66,16 @@ export const CREATE_EVENT = async (req: Request, res: Response) => {
         city: req.body.address.city,
         country: req.body.address.country,
       },
+      rawAddress: geocodeAddress.candidates[0].address,
       geolocation: {
-        address: geocodeAddress.candidates[0].address,
-        location: {
-          longitude: geocodeAddress.candidates[0].location.x,
-          latitude: geocodeAddress.candidates[0].location.y,
-        },
+        type: "Point",
+        coordinates: [
+          geocodeAddress.candidates[0].location.x,
+          geocodeAddress.candidates[0].location.y,
+        ],
       },
     };
-    console.log(req.body.accepted_persons_ids);
+
     if (
       req.body.accepted_persons_ids.length > 0 &&
       req.body.accepted_persons_ids
@@ -91,7 +92,7 @@ export const CREATE_EVENT = async (req: Request, res: Response) => {
         }
       }
     }
-    console.log(newEvent);
+
     const errors = await isValidCreateEvent(newEvent);
 
     if (Array.isArray(errors)) {
@@ -120,15 +121,22 @@ type SearchOptions = {
     },
     { accepted_persons_ids?: { $elemMatch: { user: Types.ObjectId } } }
   ];
+  geolocation?: {
+    $geoWithin?: { $centerSphere: [[x: number, y: number], dist: number] };
+  };
 };
 
 export const GET_EVENTS = async (req: Request, res: Response) => {
   try {
+    console.log(req.query);
     const hostId = req.query.hostId as string;
     let startDate: Date | null = null;
-    if (!(req.query.startDate === "undefined")) {
+
+    if (!(req.query.startDate === undefined)) {
       startDate = new Date(req.query.startDate as string);
+      console.log(startDate);
     }
+
     const title = req.query.title as string;
     const isCanceled = req.query.isCanceled as string;
     const searchOptions: SearchOptions = {};
@@ -151,6 +159,26 @@ export const GET_EVENTS = async (req: Request, res: Response) => {
     if (isCanceled && isCanceled !== "undefined") {
       searchOptions.isCanceled = isCanceled === "true";
     }
+    if (req.query.distance && req.query.distance !== "undefined") {
+      if (
+        isNaN(Number(req.query.distance)) ||
+        isNaN(Number(req.query.userLongitude)) ||
+        isNaN(Number(req.query.userLatitude))
+      ) {
+        return res.status(500).json({
+          message: "something went wrong",
+          error: "distance, longitude and latitude must be numbers",
+        });
+      }
+      searchOptions.geolocation = {};
+
+      searchOptions.geolocation.$geoWithin = {
+        $centerSphere: [
+          [Number(req.query.userLongitude), Number(req.query.userLatitude)],
+          Number(req.query.distance) / 6378.1,
+        ],
+      };
+    }
 
     const eventsFound = await eventModel
       .find(searchOptions)
@@ -158,6 +186,7 @@ export const GET_EVENTS = async (req: Request, res: Response) => {
       .populate("game")
       .populate("accepted_persons_ids.user", { name: 1, id: 1 })
       .sort({ date_time: 1 });
+
     return res
       .status(200)
       .json({ message: "events found", events: eventsFound });
