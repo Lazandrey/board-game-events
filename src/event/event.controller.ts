@@ -6,27 +6,7 @@ import eventModel from "./event.schema";
 import gameModel from "../game/game.schema";
 import { isValidCreateEvent, isValidUpdateEvent } from "../utils/validations";
 import { Types } from "mongoose";
-
-import { ApiKeyManager } from "@esri/arcgis-rest-request";
-import { geocode } from "@esri/arcgis-rest-geocoding";
-
-const authentication = ApiKeyManager.fromKey(
-  process.env.ARCGIS_API_KEY as string
-);
-
-const getGeocode = async (address: {
-  street: string;
-  city: string;
-  country: string;
-}) => {
-  const geocodeAdress = {
-    address: address.street + " " + address.city,
-    countryCode: address.country,
-    authentication,
-  };
-  const response = await geocode(geocodeAdress);
-  return response;
-};
+import { getGeocode } from "../utils/geocode";
 
 export const CREATE_EVENT = async (req: Request, res: Response) => {
   try {
@@ -44,7 +24,7 @@ export const CREATE_EVENT = async (req: Request, res: Response) => {
     }
     req.body.host = host._id;
     const geocodeAddress = await getGeocode(req.body.address);
-    console.log(geocodeAddress);
+
     if (geocodeAddress.candidates.length <= 0) {
       return res
         .status(401)
@@ -239,6 +219,7 @@ export const UPDATE_EVENT_BY_ID = async (req: Request, res: Response) => {
   try {
     console.log("req.body", req.body);
     const event = await eventModel.findOne({ id: req.params.id });
+    console.log("event", event);
     if (!event) {
       return res.status(404).json({ message: "event not found" });
     }
@@ -261,9 +242,9 @@ export const UPDATE_EVENT_BY_ID = async (req: Request, res: Response) => {
     }
     req.body.game = game._id;
 
-    if (!(event.address === req.body.address)) {
+    if (event.address.street !== req.body.address.street) {
       const geocodeAddress = await getGeocode(req.body.address);
-      console.log(geocodeAddress);
+      console.log("deocode", geocodeAddress);
       if (geocodeAddress.candidates.length <= 0) {
         return res
           .status(401)
@@ -271,11 +252,11 @@ export const UPDATE_EVENT_BY_ID = async (req: Request, res: Response) => {
       }
       console.log(geocodeAddress.candidates[0]);
       req.body.geolocation = {
-        address: geocodeAddress.candidates[0].address,
-        location: {
-          longitude: geocodeAddress.candidates[0].location.x,
-          latitude: geocodeAddress.candidates[0].location.y,
-        },
+        type: "Point",
+        coordinates: [
+          geocodeAddress.candidates[0].location.x,
+          geocodeAddress.candidates[0].location.y,
+        ],
       };
     }
     const userArray = req.body.accepted_persons_ids;
@@ -293,6 +274,8 @@ export const UPDATE_EVENT_BY_ID = async (req: Request, res: Response) => {
         }
       }
     }
+
+    console.log("req.body final", req.body);
 
     const errors = await isValidUpdateEvent(req.body);
 

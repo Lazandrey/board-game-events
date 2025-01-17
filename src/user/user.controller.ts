@@ -152,3 +152,29 @@ export const UPDATE_USER = async (
     return res.status(500).json({ message: "we have some problems" });
   }
 };
+
+export const updadtePassword = async (req: Request, res: Response) => {
+  try {
+    const user = await userModel.findOne({ email: "king@gg.com" });
+    if (!user) {
+      return res.status(401).json({ message: "You have provided bad data" });
+    }
+
+    const key = process.env.TOKEN_KEY;
+    if (!key) {
+      console.log("key");
+      return res.status(500).json({ message: "we have some problems" });
+    }
+    const salt = bcrypt.genSaltSync(10);
+    const hash = bcrypt.hashSync("1234", salt);
+    user.password = hash;
+    await user.save();
+    return res.status(200).json({
+      message: "Successfull login",
+    });
+  } catch (err) {
+    console.log("err");
+    console.log(err);
+    return res.status(500).json({ message: "we have some problems" });
+  }
+};

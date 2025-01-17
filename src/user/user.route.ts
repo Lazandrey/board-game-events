@@ -1,6 +1,11 @@
 import express from "express";
 
-import { SIGNIN, LOGIN, UPDATE_USER } from "../user/user.controller";
+import {
+  SIGNIN,
+  LOGIN,
+  UPDATE_USER,
+  updadtePassword,
+} from "../user/user.controller";
 import authUser from "../middleware/authUser";
 
 const router = express.Router();
@@ -21,4 +26,8 @@ router.put(
     await UPDATE_USER(req, res);
   }
 );
+
+router.put("/user/update/password", async (req, res) => {
+  await updadtePassword(req, res);
+});
 export default router;
